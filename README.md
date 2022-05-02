@@ -5,7 +5,7 @@ Encontrarás el contenido para los siguientes temas:
 
 - Taller 1: Cálculo de barreras precigóticas y postcigóticas
 - Seminario 1: Genómica: técnicas y aplicaciones
-- Temma 11: Reforzamiento
+- Tema 11: Reforzamiento
 - Taller 3: Reforzamiento
  
  **Si tienes cualquier duda u observación con respecto al contenido de este repositorio, no dudes en hacermelo saber**
