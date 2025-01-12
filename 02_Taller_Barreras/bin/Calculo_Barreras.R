@@ -1,11 +1,16 @@
 # Script para estimar múltiples barreras reproductivas
-# Hecho por Luis Rodrigo Arce Valdés para el curso de "Especiación y Consecuencias Evolutivas de la Hibridación" - 2022
+# Hecho por Luis Rodrigo Arce Valdés para el curso de "Especiación y Consecuencias Evolutivas de la Hibridación" - 2025
 # Recuerda comenzar a trabar en este script desde el objecto de proyectos de R "bin.Rproj"
 
-# Existe una gran diversidad de métodos para estimar la intensidad de barreras reproductivas entre dos pares de especies,
-# te compartimos anexo una revisión de los métodos más frecuentes y un intento de unificarlos (Sobel&Chen,2014).
-# En este script seguiremos un método simplificado de los análisis hechos por Sánchez-Guillén_et_al,2011
-# Es clave recordad que estos métodos los tienes que ajustar a la biología de las especies que estudies y a los datos con los qu cuentes.
+# Existe una gran diversidad de métodos para estimar la intensidad de barreras reproductivas entre dos pares de especies, te compartimos anexo una revisión de los métodos más frecuentes y un intento de unificarlos: Sobel&Chen, 2014.
+# En este script seguiremos un método simplificado de los análisis hechos por Sánchez-Guillén et al, 2011
+# Es clave recordar que estos métodos los tienes que ajustar a la biología de las especies que estudies y a los datos con los que cuentes.
+
+# 00.- Instalación de librerías ####
+# tidyr
+# ggplot2
+# overlapping
+# lattice
 
 # 01.- Iniciemos ####
 # Limpiando nuestra área de trabajo
@@ -47,7 +52,7 @@ lapply(datos, summary)
 head(datos$Habitat)
 
 # "X" representa presencia y "0" ausencia.
-# Definiremos el aislamiento geografico como "RI = 1-(poblaciones simpatricas/total de poblaciones) 
+# Definiremos la probabilidad de hibridación como "PH = poblaciones simpatricas/total de poblaciones" 
 # Primero crearemos un vector que pegue los registros de elegans con los de graellsii
 combinado <- paste0(datos$Habitat$I..elegans, datos$Habitat$I..graellsii)
 combinado
@@ -56,7 +61,8 @@ combinado
 length(grep("XX", combinado))
 
 # Excelente! tenemos 7 poblaciones simpátricas
-A.habitat <- 1 - (length(grep("XX", combinado))/length(combinado))
+A.habitat <- length(grep("XX", combinado))/length(combinado)
+print("La probabilidad de hibridación por contacto geográfico es:")
 A.habitat
 
 # Eliminando elementos intermedios
@@ -102,36 +108,53 @@ library(lattice)
 # Para que las funciones de estas paquterias funcionen emplearemos una lista nueva
 B.tiempo <- list(Elegans=datos$Temporal$I..elegans, Graellsii=datos$Temporal$I..graellsii)
 sobrelape <- overlapping::overlap(B.tiempo, plot = T, )
+sobrelape$OV
 
-# Las curvas se sobrelapan en un 27% su aislamiento será entonces de 1 - 0.27
-B.tiempo <- round(as.numeric(1-sobrelape$OV), 2)
+# Las curvas se sobrelapan en un 36.6%. Ese valor representa la probabilidad de hibridación por aislamiento temporal.
+B.tiempo <- round(as.numeric(sobrelape$OV), 2)
 rm(sobrelape)
+print("La probabilidad de hibridación por aislamiento temporal es:")
+B.tiempo
 
 # 04.- Precigoticas.Precopula ####
 # El calculo de estas barreras es muy sencillo
 
-# Definiremos una barrera mecánica como:
-# RI = 1 - (# Tandem exitosos / # de intentos de tandem)
+# Definiremos la probabilidad de hibridacion por aislamiento mecánico como:
+# PH = # Tandem exitosos / # de intentos de tandem
 head(datos$PrecigoticasPrecopula)
 
 # Algo así:
-C.mecanica <- 1 - (sum(datos$PrecigoticasPrecopula$Tandem) / sum(datos$PrecigoticasPrecopula$attempt.T))
+C.mecanica <- sum(datos$PrecigoticasPrecopula$Tandem) / sum(datos$PrecigoticasPrecopula$attempt.T)
 C.mecanica <- round(C.mecanica, 2)
+print("La probabilidad de hibridación por aislamiento mecánico es:")
+C.mecanica
 
 # Y ahora una conductual como:
-# RI = 1 - (# Copulas / # Tandems)
-D.conductual <- 1 - (sum(datos$PrecigoticasPrecopula$Mating) / sum(datos$PrecigoticasPrecopula$Tandem))
+# PH = # Copulas / # Tandems
+D.conductual <- sum(datos$PrecigoticasPrecopula$Mating) / sum(datos$PrecigoticasPrecopula$Tandem)
 D.conductual <- round(D.conductual, 2)
+print("La probabilidad de hibridación por aislamiento conductual es:")
+D.conductual
 
 # 05.- Precigoticas.Postcopula ####
 # Aquí tambien calcularemos dos barreras,
 
 # Primero: Oviposición: % de hembras que tras la cópula ovipositaron
-# RI = 1 - (Numero de hembras que ovipositaron / total de hembras que copularon)
+# PH = Numero de hembras que ovipositaron / total de hembras que copularon
+head(datos$PrecigoticasPostcopula)
+
+# Calculando cuantas hembras ovipositaron; es decir, pusieron 1 o más huevos.
 hembras.ovipositaron <- nrow(datos$PrecigoticasPostcopula[datos$PrecigoticasPostcopula$clutches_with_eggs!=0,])
+
+# Ahora estimando cuantas hembras totales copularon
 hembras.copularon <- nrow(datos$PostcigoticasPostcopula)
-E.Oviposicion <- 1-(hembras.ovipositaron/hembras.copularon)
+
+# Ahora podremos saber qué fracción de hembras que copularon sí pusieron huevos exitosamente
+E.Oviposicion <- hembras.ovipositaron/hembras.copularon
 rm(hembras.copularon, hembras.ovipositaron)
+
+print("La probabilidad de hibridación por oviposicion es:")
+E.Oviposicion
 
 # Segundo: Fertilidad: numero promedio del porcentaje de huevos fertiles
 fertilidad <- datos$PrecigoticasPostcopula
@@ -139,7 +162,9 @@ fertilidad <- datos$PrecigoticasPostcopula
 # Como primer paso quitaremos las hembras que no ovipositaron (esas ya las consideramos en la barrera anterior)
 fertilidad <- fertilidad[fertilidad$clutches_with_eggs!=0,]
 
-# Observa nuestros datos, algunos fueron almacenados con NA (missing data)
+# Observa nuestros datos, algunos fueron almacenados con NA (missing data):
+fertilidad[!complete.cases(fertilidad),]
+
 # Reemplazaremos esos datos por 0
 fertilidad[is.na(fertilidad)] <- 0
 
@@ -158,11 +183,13 @@ fertilidad$fertilidad <- fertilidad$Huevos.fertiles / fertilidad$Huevos.totales
 F.Fertilidad <- mean(fertilidad$fertilidad)
 rm(fertilidad)
 
-# Y obtendremos asi nuestro indice de aislamiento por esta barrera
-F.Fertilidad <- 1 - (round(F.Fertilidad, 2))
+# Este valor representa la probabilidad de hibridacion por fertilidad
+F.Fertilidad <- round(F.Fertilidad, 2)
+print("La probabilidad de hibridación por oviposicion es:")
+F.Fertilidad
 
 # Finalmente unamos nuestras estimaciones en un data.frame
-Barreras <- data.frame(Barrera = ls(pattern = "\\."), Aislamiento = c(A.habitat,
+Barreras <- data.frame(Barrera = ls(pattern = "\\."), PH = c(A.habitat,
                                                                      B.tiempo,
                                                                      C.mecanica,
                                                                      D.conductual,
@@ -170,48 +197,65 @@ Barreras <- data.frame(Barrera = ls(pattern = "\\."), Aislamiento = c(A.habitat,
                                                                      F.Fertilidad))
 rm(list = ls(pattern = "\\."))
 
-# 06.- Gráfico de Barreras absolutas ####
+# 06.- Gráfico de PH absoluto ####
 ggplot(Barreras) +
-  geom_col(aes(x=Barrera, y=Aislamiento, fill=Barrera), color="black") +
+  geom_col(aes(x=Barrera, y=PH, fill=Barrera), color="black") +
   scale_y_continuous(limits = c(0,1)) +
   theme_classic() +
+  labs(title = "Probabilidad de hibridación por barrera reproductiva") +
   theme(legend.position = "none")
 
 # 07.- Aplicando corrección conespecifica ####
-# Contamos con los valores de estas mismas barreras calculados en cruzas conespecificas
-head(datos$Conespecificos)
+# Estos valores representan la probabilidad de hibridación o de que haya flujo genético entre las dos especies.
+# Para que tengan sentido desde un punto de vista biólogico y matemático se debe comparar con la probabilidad reproductiva de cada barrera en cruces conespecíficos.
+# Estos datos ya los tenemos estimados para cruces conespecíficos de cada especie
+datos$Conespecificos
 
-# Primero filtremos los datos conespecificos para las barreras que hemos calculado
-conespecificos <- datos$Conespecificos[datos$Conespecificos$Barrera %in% Barreras$Barrera, ]
+# *observa como los valores en general son más altos que los que estimamos. Biológicamente, ¿Tiene sentido? 
+
+# Filtremos los datos conespecificos para las barreras que hemos calculado
+conespecificos <- datos$Conespecificos[datos$Conespecificos$Barrera %in% Barreras$Barrera,]
 
 # Unamos ambos sets de datos
 Barreras <- cbind(Barreras, conespecificos[,-1])
 head(Barreras)
 
-# Dado que ya contamos con el aislamiento en forma de barreras, 
-# emplearemos la siguiente formula para aplicar una corrección conespecifica:
-# RI = aislamiento heteroespecifico - (asilamiento sp1 + aislamiento sp2)/2
-Barreras$Corregido <- Barreras$Aislamiento - ((Barreras$Elegans + Barreras$Graellsii)/2)
-head(Barreras)
+# Necesitamos estimar que tan efectivos son los cruces heterospecíficos *relativo* a los cruces conespecificos.
+# Podemos estimar eso dividiento la probabilidad de hibridacion entre el promedio de los datos conespecificos
+Barreras$Corregido <- Barreras$PH / ((Barreras$Elegans + Barreras$Graellsii)/2)
+Barreras
 
 # Las primeras dos barreras no tienen un equivalente conespcifico, así que copiaremos los valores originales
-Barreras[1:2,"Corregido"] <- Barreras[1:2,"Aislamiento"]
+Barreras[1:2,"Corregido"] <- Barreras[1:2,"PH"]
 Barreras$Corregido <- as.numeric(Barreras$Corregido)
-head(Barreras)
+Barreras
 
 # Grafiquemos estos nuevos resutados
 ggplot(Barreras) +
   geom_hline(aes(yintercept = 0), color="black") +
   geom_col(aes(x=Barrera, y=Corregido, fill=Barrera), color="black") +
-  scale_y_continuous(limits = c(-1,1)) +
-  labs(y="Aislamiento Reproductivo") +
+  labs(y="PH corregido") +
   theme_classic() +
   theme(legend.position = "none")
 
-# La escala ahora va de -1 a 1, ¿porqué?
-# ¿Qué significa un valor negativo en una barrera reproductiva?
+# *¿Qué significan las barreras con una PH menor a 1?*
+# ¿Y aquella en la que el valor es 1.5?
 
-# 08.- Calculando contribución relativa de cada barrera ####
+# 09.- De PH a aislamiento reproductivo ####
+# El aislamiento reproductivo (AR) es lo opuesto al PH. Mientras una barrera tenga menor PH el AR es mayor, es decir, es una barrera mas efectiva para reducir la hibridación.
+# Por lo tanto, podemos estimar AR:
+Barreras$Aislamiento <- 1 - Barreras$Corregido
+ggplot(Barreras) +
+  geom_hline(aes(yintercept = 0), color="black") +
+  geom_col(aes(x=Barrera, y=Aislamiento, fill=Barrera), color="black") +
+  scale_y_continuous(limits = c(NA,1)) +
+  labs(y="PH corregido") +
+  theme_classic() +
+  theme(legend.position = "none")
+
+# *Aqui también podemos ver que en términos de oviposición el cruce heterospecífico es más exitoso que los conespecíficos.
+
+# 10.- Calculando contribución relativa de cada barrera ####
 # ¿Qué tanto cada barrera contribuye al aislamiento entre estas especies?
 # ¿Cuál es el aislamiento total entre ellas?
 # Aplicaremos el la formula de componentes al aislamiento de Ramsey et al (2003):
@@ -233,19 +277,28 @@ Ramsey <- function(absolutos, redondeo=2) {
 }
 
 # Aplicando la función que acabamos de crear para transformar a relativos
-Barreras$Relativas <- Ramsey(Barreras$Corregido, redondeo = 3)
+Barreras$Relativas <- Ramsey(Barreras$Aislamiento, redondeo = 3)
 head(Barreras)
+
+print("El aislamiento total de las especies es de: ")
+Barreras[6,7]
 
 # Graficando
 ggplot(Barreras) +
   geom_hline(aes(yintercept = 0), color="black") +
-  geom_col(aes(x=Barrera, y=Corregido, fill=Barrera), color="black") +
+  geom_col(aes(x=Barrera, y=Aislamiento, fill=Barrera), color="black") +
   geom_point(aes(x=Barrera, y=Relativas)) +
   geom_line(aes(x=Barrera, y=Relativas, group=1)) +
   scale_y_continuous(limits = c(-1,1)) +
   labs(y="Aislamiento Reproductivo") +
   theme_classic() +
   theme(legend.position = "none")
+
+# Son especies con un alto aislamiento acumulado!!!
+
+# Se debe a una sola barrera?
+
+# Cual es el mecanismo de aislamiento más importante entre ellas?
 
 # TRABAJO OPCIONAL EXTRA ####
 # ¡Excelente ya calculamos todas las barreras precigoticas!
@@ -254,8 +307,8 @@ ggplot(Barreras) +
 
 # La primera barrera es la barrera de supervivencia,
 # ¿Los híbridos viven menos que los organismos puros?
-# Definiremos la barrera de supervivencia por pecera como:
-# 1 - Numero de adultos al final de la cría / Número de larvas al inicio de la cría
+# Definiremos la probabilidad de hibridacion por supervivencia de los hibridos por pecera como:
+# Numero de adultos al final de la cría / Número de larvas al inicio de la cría
 # Después calcula el promedio de la supervivencia de todas las peceras para tener un solo valor.
 
 
@@ -265,4 +318,3 @@ ggplot(Barreras) +
 
 # Finalmente aplica la corrección conespecifica con estas nuevas barreras, estima la contribución relativa de cada barrera y gráfica
 # Puedes hacer este ejercicio en R, en Excel o incluso a mano. Como se te facilite más.
-# 1 punto extra de calificación final si lo realizas correctamente!
