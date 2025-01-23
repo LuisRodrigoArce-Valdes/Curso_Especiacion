@@ -7,10 +7,10 @@
 # Es clave recordar que estos métodos los tienes que ajustar a la biología de las especies que estudies y a los datos con los que cuentes.
 
 # 00.- Instalación de librerías ####
-# tidyr
-# ggplot2
-# overlapping
-# lattice
+# Los siguientes comandos revisan si en tu R tienes instalado las librerías que utilzaremos, si no las tienes las instala.
+list.of.packages <- c("tidyr","ggplot2","overlapping","lattice")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
 
 # 01.- Iniciemos ####
 # Limpiando nuestra área de trabajo
